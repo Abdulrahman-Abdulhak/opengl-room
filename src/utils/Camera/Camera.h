@@ -57,9 +57,9 @@ public:
 
     void processKeyboard(CameraMovement direction, float deltaTime, float speed);
 
-    void processMouseMovement(float xoffset, float yoffset, float sensitivity = 0.1f);
+    void processMouseMovement(float xOffset, float yOffset, float sensitivity = 0.1f);
 
-    void processMouseScroll(float yoffset);
+    void processMouseScroll(float yOffset);
 
 private:
     void updateVectors();

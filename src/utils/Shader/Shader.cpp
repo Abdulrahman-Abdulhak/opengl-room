@@ -1,6 +1,6 @@
 #include "Shader.h"
 
-#include <gl/glew.h>
+#include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 
 void Shader::setMat4(const std::string& name, const glm::mat4& matrix) const

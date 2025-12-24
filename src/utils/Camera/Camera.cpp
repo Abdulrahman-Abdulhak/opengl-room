@@ -1,6 +1,6 @@
-#include <algorithm>
-
 #include "Camera.h"
+
+#include <algorithm>
 
 Camera::Camera(
     glm::vec3 position,

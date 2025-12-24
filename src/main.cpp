@@ -1,9 +1,12 @@
 #include <iostream>
 
-#include <GL/glew.h>
+#include <glad/glad.h> // ! Keep this import above glfw3 import
 #include <GLFW/glfw3.h>
 
 #include "utils/Shader/Shader.h"
+#include "utils/Time/Time.h"
+
+#include "math/Mesh/Mesh.h"
 
 int main(void) {
   GLFWwindow* window;
@@ -13,7 +16,7 @@ int main(void) {
     return -1;
 
   /* Create a windowed mode window and its OpenGL context */
-  window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+  window = glfwCreateWindow(640, 480, "Room", NULL, NULL);
   if (!window) {
     glfwTerminate();
     return -1;
@@ -22,35 +25,35 @@ int main(void) {
   /* Make the window's context current */
   glfwMakeContextCurrent(window);
 
-  if (glewInit() != GLEW_OK) {
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    std::cerr << "Failed to initialize GLAD\n";
     return -1;
   }
 
   std::cout << "Using OpenGL Driver: " << glGetString(GL_VERSION) << std::endl;
 
-  float positions[6] = {-.5f, -.5f, 0.0f, .5f, .5f, -.5f};
+  std::vector<Vertex> verts = {
+    {{-0.5f,-0.5f,0.0f}, {1,0,0}},
+    {{ 0.5f,-0.5f,0.0f}, {0,1,0}},
+    {{ 0.0f, 0.5f,0.0f}, {0,0,1}},
+  };
 
-  unsigned int buffer;
-  glGenBuffers(1, &buffer);
-  glBindBuffer(GL_ARRAY_BUFFER, buffer);
-  glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_STATIC_DRAW);
-
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
-
+  Mesh tri(verts);
   Shader shader("test");
-  shader.bind();
 
   /* Loop until the user closes the window */
   while (!glfwWindowShouldClose(window)) {
+    Time::update();
+
     /* Render here */
     glClear(GL_COLOR_BUFFER_BIT);
 
     if (shader.reloadIfChanged()) {
       std::cout << "Shader reloaded OK\n";
     }
+
     shader.bind();
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    tri.draw();
 
     /* Swap front and back buffers */
     glfwSwapBuffers(window);

@@ -1,15 +1,23 @@
 # generate_sources.ps1
-# Writes a sources.txt file listing every .cpp under ./src with each path quoted.
-# Writes UTF-8 without BOM using .NET WriteAllLines.
+# Writes a sources.txt file listing every .cpp and .c under ./src with each path quoted.
+# Writes UTF-8 without BOM.
 
-# Ensure we run in the workspace folder (VS Code tasks set cwd to workspace root)
 Set-Location -LiteralPath (Get-Location)
 
-[int]$count = 0
-$files = Get-ChildItem -Recurse -Path .\src -Filter *.cpp -File | ForEach-Object {
-	$count++
-	$p = $_.FullName -replace '\\','/'
-	'"' + $p + '"'
-}
+$srcRoot = Join-Path (Get-Location) 'src'
+$outPath = Join-Path (Get-Location) 'sources.txt'
+
+# Collect .cpp and .c files
+$files = Get-ChildItem -Recurse -Path $srcRoot -File |
+    Where-Object { $_.Extension -in @('.cpp', '.c') } |
+    ForEach-Object {
+        $p = $_.FullName -replace '\\','/'
+        '"' + $p + '"'
+    }
+
+[int]$count = $files.Count
 [Console]::WriteLine("Wrote $count entries to sources.txt")
-$files | Out-File -FilePath (Join-Path (Get-Location) 'sources.txt') -Encoding ascii
+
+# UTF-8 without BOM
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllLines($outPath, $files, $utf8NoBom)
