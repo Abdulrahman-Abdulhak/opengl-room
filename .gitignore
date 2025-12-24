@@ -1,0 +1,5 @@
+.vscode
+.env
+
+bin/*.exe
+sources.txt
