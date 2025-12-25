@@ -33,13 +33,9 @@ namespace Texture {
         glGenTextures(1, &textureID);
         glBindTexture(GL_TEXTURE_2D, textureID);
 
-        // Ensure proper row alignment only when needed. The GPU expects
-        // each row to start at an address aligned to GL_UNPACK_ALIGNMENT
-        // (default 4). If bytes-per-row isn't a multiple of 4 (e.g. width=225
-        // with 3 channels -> 675 bytes), then set alignment to 1 temporarily.
         GLint prevAlign = 4;
         glGetIntegerv(GL_UNPACK_ALIGNMENT, &prevAlign);
-        int bytesPerRow = width * channels; // unsigned byte data -> 1 byte per channel
+        int bytesPerRow = width * channels;
         bool changedAlign = false;
         if ((bytesPerRow % 4) != 0) {
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -94,10 +90,9 @@ namespace Texture {
 
             GLenum format = channels == 4 ? GL_RGBA : GL_RGB;
 
-            // handle potential non-4-aligned row sizes for cubemap faces
             GLint prevAlignFace = 4;
             glGetIntegerv(GL_UNPACK_ALIGNMENT, &prevAlignFace);
-            int bytesPerRowFace = width * channels; // unsigned byte data
+            int bytesPerRowFace = width * channels;
             bool changedFace = false;
             if ((bytesPerRowFace % 4) != 0) {
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -164,9 +159,6 @@ namespace Texture {
 
         GLenum format = (n == 4) ? GL_RGBA : GL_RGB;
 
-        // For HDR (float) data, compute bytes-per-row and change alignment
-        // only if necessary. sizeof(float) == 4 on common platforms, so
-        // rows are usually 4-byte aligned, but handle generally.
         GLint prevAlignHdr = 4;
         glGetIntegerv(GL_UNPACK_ALIGNMENT, &prevAlignHdr);
         int bytesPerRowHdr = w * n * static_cast<int>(sizeof(float));

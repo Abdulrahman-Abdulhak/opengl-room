@@ -4,11 +4,11 @@
 #include <utility>
 #include <iostream>
 
-#include "utils/Texture/Texture.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
-// Internal helpers (ported from previous header-only implementation)
+#include "utils/Texture/Texture.h"
+
 static void pushQuadInward(
     std::vector<Vertex>& vertices,
     std::vector<uint32_t>& indicies,
@@ -33,7 +33,6 @@ static void pushQuadInward(
     indicies.push_back(base + 3);
 }
 
-// Build two meshes: opaque geometry and transparent geometry (glass)
 static std::pair<Mesh, Mesh> buildRoomMeshes(float width, float height, float depth, bool addGlass) {
     std::vector<Vertex> o_vertices;
     std::vector<uint32_t> o_indices;
@@ -81,16 +80,10 @@ static std::pair<Mesh, Mesh> buildRoomMeshes(float width, float height, float de
         t_indices.push_back(base+0); t_indices.push_back(base+2); t_indices.push_back(base+3);
     };
 
-    // floor
     pushOpaque(p1,p2,p6,p5,colFloor);
-    // ceiling
     pushOpaque(p4,p8,p7,p3,colCeiling);
-    // north
     pushOpaque(p2,p1,p4,p3,colNorth);
 
-    // south wall (with possible window/glass)
-    // We'll push the wall strips to opaque, and push the glass quad (if any)
-    // to the transparent mesh.
     auto P = [&](float x, float y) { return glm::vec3(x, y, +hz); };
     float x0 = -hx, x1 = +hx;
     float wxCenter = 0.0f;
@@ -122,22 +115,17 @@ static std::pair<Mesh, Mesh> buildRoomMeshes(float width, float height, float de
             }
     }
 
-    // west and east
     pushOpaque(p1,p5,p8,p4,colWest);
     pushOpaque(p6,p2,p3,p7,colEast);
 
-    // Add two paintings: one on the north wall (z = -hz), one on the east wall (x = +hx)
-    // Painting colors are special markers the shader will detect and sample the
-    // dedicated painting textures.
-    glm::vec3 paint1Col(0.2f, 0.0f, 0.0f); // painting 1 marker color
-    glm::vec3 paint2Col(0.0f, 0.2f, 0.0f); // painting 2 marker color
+    glm::vec3 paint1Col(0.2f, 0.0f, 0.0f);
+    glm::vec3 paint2Col(0.0f, 0.2f, 0.0f);
 
-    // Painting 1: on north wall (z = -hz), centered left-side
     {
         float pw = 1.2f, ph = 0.9f;
         float cx = -hx * 0.5f;
         float cy = height * 0.6f;
-        float z = -hz + 0.01f; // slightly inset
+        float z = -hz + 0.01f;
         glm::vec3 a(cx - pw*0.5f, cy - ph*0.5f, z);
         glm::vec3 b(cx + pw*0.5f, cy - ph*0.5f, z);
         glm::vec3 c_(cx + pw*0.5f, cy + ph*0.5f, z);
@@ -145,12 +133,11 @@ static std::pair<Mesh, Mesh> buildRoomMeshes(float width, float height, float de
         pushOpaque(a,b,c_,d, paint1Col);
     }
 
-    // Painting 2: on east wall (x = +hx), centered right-side
     {
         float pw = 1.0f, ph = 0.7f;
         float cz = hz * 0.5f;
         float cy = height * 0.55f;
-        float x = +hx - 0.01f; // slightly inset
+        float x = +hx - 0.01f;
         glm::vec3 a(x, cy - ph*0.5f, cz - pw*0.5f);
         glm::vec3 b(x, cy - ph*0.5f, cz + pw*0.5f);
         glm::vec3 c_(x, cy + ph*0.5f, cz + pw*0.5f);
@@ -193,8 +180,6 @@ Room::Room(float width, float height, float depth,
     m_paint1Tex = Texture::load2D(ASSETS_DIR + "/images/monalisa.png");
     m_paint2Tex = Texture::load2D(ASSETS_DIR + "/images/van-gogh.png");
 
-        // Set clamp mode for paintings so they don't repeat and sample outside
-        // [0,1] returns edge texel.
         if (m_paint1Tex) {
             glBindTexture(GL_TEXTURE_2D, m_paint1Tex);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -206,16 +191,12 @@ Room::Room(float width, float height, float depth,
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         }
 
-        // Compute painting centers and sizes to match the quads we created above
         float hx = width * 0.5f;
         float hz = depth * 0.5f;
-        // Painting1: north wall centered left-side (matches mesh code)
         m_paint1Size = glm::vec2(1.2f, 0.9f);
         m_paint1Center = glm::vec3(-hx * 0.5f, height * 0.6f, -hz + 0.01f);
-        // Painting2: east wall
         m_paint2Size = glm::vec2(1.0f, 0.7f); // width (z-dir), height (y)
         m_paint2Center = glm::vec3(+hx - 0.01f, height * 0.55f, hz * 0.5f);
-        // Store room center (matches shader's uRoomCenter usage)
         m_roomCenter = glm::vec3(0.0f, height * 0.5f, 0.0f);
 }
 
@@ -229,9 +210,6 @@ Room::~Room() {
 void Room::draw(Shader& shader) const {
     shader.bind();
 
-    // Use fixed texture unit mapping so the shader can always reference
-    // the same sampler variables. Presence flags tell the shader which
-    // textures are bound.
     shader.setInt("floorTex", 0);
     shader.setInt("wallTex", 1);
     shader.setInt("ceilTex", 2);
@@ -246,7 +224,6 @@ void Room::draw(Shader& shader) const {
     shader.setFloat("uGlassOpacity", 0.5f);
     shader.setInt("uHasPainting1", m_paint1Tex ? 1 : 0);
     shader.setInt("uHasPainting2", m_paint2Tex ? 1 : 0);
-    // Send painting centers in the same coordinate space as shader's `p` (vWorldPos - uRoomCenter)
     shader.setVec3("uPaint1Center", m_paint1Center - m_roomCenter);
     shader.setVec2("uPaint1Size", m_paint1Size);
     shader.setVec3("uPaint2Center", m_paint2Center - m_roomCenter);
@@ -277,12 +254,10 @@ void Room::draw(Shader& shader) const {
         glBindTexture(GL_TEXTURE_2D, m_paint2Tex);
     }
 
-    // First draw opaque mesh normally
     if (m_opaqueMesh && m_opaqueMesh->VAO() != 0) {
         m_opaqueMesh->draw();
     }
 
-    // Then draw transparent mesh (glass) with blending and depth writes disabled
     if (m_transparentMesh && m_transparentMesh->VAO() != 0 && m_glassTex) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -294,7 +269,6 @@ void Room::draw(Shader& shader) const {
         glDisable(GL_BLEND);
     }
 
-    // Unbind bound texture units
     for (int i = 0; i < 6; ++i) {
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_2D, 0);

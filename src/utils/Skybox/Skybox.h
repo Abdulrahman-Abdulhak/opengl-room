@@ -6,8 +6,8 @@
 
 #include "utils/Shader/Shader.h"
 #include "utils/Texture/Texture.h"
-#include "math/Mesh/Mesh.h"
 #include "utils/Camera/Camera.h"
+#include "math/Mesh/Mesh.h"
 
 class Skybox {
 public:

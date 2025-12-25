@@ -101,7 +101,6 @@ int main(void) {
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetWindowUserPointer(window, &camera);
 
-
   auto skyboxCube = Primitives::Cube(1.0f);
   Skybox skybox(
     skyboxCube,
@@ -115,15 +114,14 @@ int main(void) {
   auto roomHeight = 3.f;
   auto roomDepth = 10.f;
 
-  // Create Room with textures (pass empty string to skip a texture)
   Room room(
     roomWidth,
     roomHeight,
     roomDepth,
-    TEXTURES_DIR + std::string("/painted-plaster/diffuse.jpg"), // wall
-    TEXTURES_DIR + std::string("/wood-shutter/diffuse.jpg"),   // ceil
-    TEXTURES_DIR + std::string("/granite-tile/diffuse.jpg"),  // floor
-    true         // add glass
+    TEXTURES_DIR + std::string("/painted-plaster/diffuse.jpg"),
+    TEXTURES_DIR + std::string("/wood-shutter/diffuse.jpg"),
+    TEXTURES_DIR + std::string("/granite-tile/diffuse.jpg"),
+    true
   );
 
   Shader roomShader("room");
