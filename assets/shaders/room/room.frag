@@ -7,11 +7,19 @@ uniform sampler2D floorTex;
 uniform sampler2D wallTex;
 uniform sampler2D ceilTex;
 uniform sampler2D glassTex;
+uniform sampler2D painting1Tex;
+uniform sampler2D painting2Tex;
 
 uniform int uHasFloor; // 0/1
 uniform int uHasWall;
 uniform int uHasCeil;
 uniform int uHasGlass;
+uniform int uHasPainting1;
+uniform int uHasPainting2;
+uniform vec3 uPaint1Center;
+uniform vec2 uPaint1Size;
+uniform vec3 uPaint2Center;
+uniform vec2 uPaint2Size;
 uniform float uGlassOpacity; // multiplier used when glass texture has no alpha
 
 uniform float uTile;       // e.g. 1.0, 2.0, 5.0
@@ -62,6 +70,30 @@ void main() {
         }
     } else {
         if (uHasWall == 1) texColor = texture(wallTex, uv) * vec4(vColor, 1.0);
+    }
+
+    // Override sampling for paintings (marked by vertex color markers)
+    vec3 paint1Ref = vec3(0.2, 0.0, 0.0);
+    vec3 paint2Ref = vec3(0.0, 0.2, 0.0);
+    if (uHasPainting1 == 1 && distance(vColor, paint1Ref) < 0.01) {
+        // Painting1 is on a north-facing wall (X-Y plane at Z ~= const).
+        vec2 uvp;
+        uvp.x = (p.x - (uPaint1Center.x - uPaint1Size.x * 0.5)) / uPaint1Size.x;
+        uvp.y = (p.y - (uPaint1Center.y - uPaint1Size.y * 0.5)) / uPaint1Size.y;
+        uvp = clamp(uvp, 0.0, 1.0);
+        texColor = texture(painting1Tex, uvp);
+        FragColor = texColor;
+        return;
+    }
+    if (uHasPainting2 == 1 && distance(vColor, paint2Ref) < 0.01) {
+        // Painting2 is on an east-facing wall (Z-Y plane at X ~= const).
+        vec2 uvp;
+        uvp.x = (p.z - (uPaint2Center.z - uPaint2Size.x * 0.5)) / uPaint2Size.x;
+        uvp.y = (p.y - (uPaint2Center.y - uPaint2Size.y * 0.5)) / uPaint2Size.y;
+        uvp = clamp(uvp, 0.0, 1.0);
+        texColor = texture(painting2Tex, uvp);
+        FragColor = texColor;
+        return;
     }
 
     // Glass is usually a separate slightly-inset quad; if present and this

@@ -33,6 +33,19 @@ namespace Texture {
         glGenTextures(1, &textureID);
         glBindTexture(GL_TEXTURE_2D, textureID);
 
+        // Ensure proper row alignment only when needed. The GPU expects
+        // each row to start at an address aligned to GL_UNPACK_ALIGNMENT
+        // (default 4). If bytes-per-row isn't a multiple of 4 (e.g. width=225
+        // with 3 channels -> 675 bytes), then set alignment to 1 temporarily.
+        GLint prevAlign = 4;
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &prevAlign);
+        int bytesPerRow = width * channels; // unsigned byte data -> 1 byte per channel
+        bool changedAlign = false;
+        if ((bytesPerRow % 4) != 0) {
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            changedAlign = true;
+        }
+
         glTexImage2D(
             GL_TEXTURE_2D,
             0,
@@ -44,6 +57,8 @@ namespace Texture {
             GL_UNSIGNED_BYTE,
             data
         );
+
+        if (changedAlign) glPixelStorei(GL_UNPACK_ALIGNMENT, prevAlign);
         glGenerateMipmap(GL_TEXTURE_2D);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -79,6 +94,16 @@ namespace Texture {
 
             GLenum format = channels == 4 ? GL_RGBA : GL_RGB;
 
+            // handle potential non-4-aligned row sizes for cubemap faces
+            GLint prevAlignFace = 4;
+            glGetIntegerv(GL_UNPACK_ALIGNMENT, &prevAlignFace);
+            int bytesPerRowFace = width * channels; // unsigned byte data
+            bool changedFace = false;
+            if ((bytesPerRowFace % 4) != 0) {
+                glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+                changedFace = true;
+            }
+
             glTexImage2D(
                 GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
                 0,
@@ -90,6 +115,8 @@ namespace Texture {
                 GL_UNSIGNED_BYTE,
                 data
             );
+
+            if (changedFace) glPixelStorei(GL_UNPACK_ALIGNMENT, prevAlignFace);
 
             stbi_image_free(data);
         }
@@ -137,6 +164,18 @@ namespace Texture {
 
         GLenum format = (n == 4) ? GL_RGBA : GL_RGB;
 
+        // For HDR (float) data, compute bytes-per-row and change alignment
+        // only if necessary. sizeof(float) == 4 on common platforms, so
+        // rows are usually 4-byte aligned, but handle generally.
+        GLint prevAlignHdr = 4;
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &prevAlignHdr);
+        int bytesPerRowHdr = w * n * static_cast<int>(sizeof(float));
+        bool changedHdr = false;
+        if ((bytesPerRowHdr % 4) != 0) {
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            changedHdr = true;
+        }
+
         glTexImage2D(
             GL_TEXTURE_2D, 0,
             (format == GL_RGBA ? GL_RGBA16F : GL_RGB16F),
@@ -145,6 +184,8 @@ namespace Texture {
             GL_FLOAT,
             data
         );
+
+        if (changedHdr) glPixelStorei(GL_UNPACK_ALIGNMENT, prevAlignHdr);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

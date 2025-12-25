@@ -27,6 +27,8 @@ public:
     unsigned int ceilTexture() const { return m_ceilTex; }
     unsigned int floorTexture() const { return m_floorTex; }
     unsigned int glassTexture() const { return m_glassTex; }
+    unsigned int painting1Texture() const { return m_paint1Tex; }
+    unsigned int painting2Texture() const { return m_paint2Tex; }
 
     // Draw the room using the provided shader. Shader must accept the
     // optional sampler uniforms: `floorTex`, `wallTex`, `ceilTex`, `glassTex`.
@@ -39,4 +41,11 @@ private:
     unsigned int m_ceilTex = 0;
     unsigned int m_floorTex = 0;
     unsigned int m_glassTex = 0;
+    unsigned int m_paint1Tex = 0;
+    unsigned int m_paint2Tex = 0;
+    glm::vec3 m_paint1Center = glm::vec3(0.0f);
+    glm::vec2 m_paint1Size = glm::vec2(1.0f);
+    glm::vec3 m_paint2Center = glm::vec3(0.0f);
+    glm::vec2 m_paint2Size = glm::vec2(1.0f);
+    glm::vec3 m_roomCenter = glm::vec3(0.0f);
 };
