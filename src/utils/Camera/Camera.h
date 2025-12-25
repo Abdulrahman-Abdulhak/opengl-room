@@ -35,7 +35,7 @@ public:
         float fovDeg,
         float aspect,
         float nearPlane = 0.1f,
-        float farPlane  = 1000.0f
+        float farPlane = 1000.0f
     );
 
     Camera(
@@ -46,7 +46,7 @@ public:
         float fovDeg,
         float aspect,
         float nearPlane = 0.1f,
-        float farPlane  = 1000.0f
+        float farPlane = 1000.0f
     );
 
     glm::mat4 getViewMatrix() const;

@@ -10,6 +10,7 @@
 
 #include "math/Mesh/Mesh.h"
 #include "math/Primitives/Primitives.h"
+#include "utils/Skybox/Skybox.h"
 
 // TODO: create a better mouse input handling system
 void mouseCallback(GLFWwindow* window, double xPos, double yPos) {
@@ -85,6 +86,8 @@ int main(void) {
 
   glEnable(GL_DEPTH_TEST);
 
+  const int cubemapSize = 1024;
+
   Camera camera(
     glm::vec3(0.0f, 2.0f, 4.0f),
     glm::vec3(0.0f, 0.0f, 0.0f),
@@ -96,22 +99,14 @@ int main(void) {
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetWindowUserPointer(window, &camera);
 
-  auto cube = Primitives::Cube();
-  Shader equirectToCube("equirect_to_cubemap");
-  Shader skyboxShader("skybox");
 
-  unsigned int hdr2D = Texture::loadHDRI2D(TEXTURES_DIR + "/skybox/qwantani_moon_noon_puresky_1k.hdr");
-  if (hdr2D == 0) {
-    std::cerr << "Failed to load the Skybox texture\n";
-    return -1;
-  }
-
-  unsigned int skyboxCubemap = Texture::convertHDRIToCubemap(
-    hdr2D,
-    equirectToCube,
-    cube.VAO(),
-    512,
-    SCR_W, SCR_H
+  auto skyboxCube = Primitives::Cube(1.0f);
+  Skybox skybox(
+    skyboxCube,
+    TEXTURES_DIR + std::string("/skybox/qwantani_moon_noon_puresky_1k.hdr"),
+    cubemapSize,
+    SCR_W,
+    SCR_H
   );
 
   /* Loop until the user closes the window */
@@ -130,26 +125,10 @@ int main(void) {
     //   std::cout << "Shader reloaded OK\n";
     // }
 
-    glDepthFunc(GL_LEQUAL);
-
-    skyboxShader.bind();
-    skyboxShader.setInt("skybox", 0);
-
-    glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_W / (float)SCR_H, 0.1f, 100.0f);
-
-    glm::mat4 proj = camera.getProjectionMatrix();
-    glm::mat4 view = glm::mat4(glm::mat3(camera.getViewMatrix()));
-
-    skyboxShader.setMat4("proj", proj);
-    skyboxShader.setMat4("view", view);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxCubemap);
-    cube.draw();
+    skybox.draw(camera);
 
     float cameraSpeed = 3.0f;
     checkKeyboardEvents(window, cameraSpeed, Time::deltaTime);
-
 
     /* Swap front and back buffers */
     glfwSwapBuffers(window);
