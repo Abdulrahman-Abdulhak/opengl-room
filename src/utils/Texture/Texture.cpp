@@ -222,12 +222,27 @@ namespace Texture {
         for (unsigned int i = 0; i < 6; i++)
         {
             shaderEquirectToCube.setMat4("view", CAPTURE_VIEWS[i]);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
+            glFramebufferTexture2D(
+                GL_FRAMEBUFFER,
+                GL_COLOR_ATTACHMENT0,
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                envCubemap, 0
+            );
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glBindVertexArray(cubeVAO);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+
+            GLint elementBuffer = 0;
+            glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &elementBuffer);
+
+            if (elementBuffer != 0) {
+                GLint bufSize = 0;
+                glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &bufSize);
+                GLsizei indexCount = static_cast<GLsizei>(bufSize / sizeof(unsigned int));
+                glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+            } else {
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+            }
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

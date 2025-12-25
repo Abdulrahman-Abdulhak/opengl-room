@@ -9,6 +9,7 @@
 #include "utils/Camera/Camera.h"
 
 #include "math/Mesh/Mesh.h"
+#include "math/Primitives/Primitives.h"
 
 // TODO: create a better mouse input handling system
 void mouseCallback(GLFWwindow* window, double xPos, double yPos) {
@@ -49,43 +50,6 @@ void checkKeyboardEvents(GLFWwindow* window, float cameraSpeed, float deltaTime)
 
 static void framebuffer_size_callback(GLFWwindow* window, int w, int h) {
     glViewport(0, 0, w, h);
-}
-
-static unsigned int createCubeVAO() {
-    float cubeVertices[] = {
-        // back face
-        -5.0f, -5.0f, -5.0f,  5.0f,  5.0f, -5.0f,  5.0f, -5.0f, -5.0f,
-         5.0f,  5.0f, -5.0f, -5.0f, -5.0f, -5.0f, -5.0f,  5.0f, -5.0f,
-        // front face
-        -5.0f, -5.0f,  5.0f,  5.0f, -5.0f,  5.0f,  5.0f,  5.0f,  5.0f,
-         5.0f,  5.0f,  5.0f, -5.0f,  5.0f,  5.0f, -5.0f, -5.0f,  5.0f,
-        // left face
-        -5.0f,  5.0f,  5.0f, -5.0f,  5.0f, -5.0f, -5.0f, -5.0f, -5.0f,
-        -5.0f, -5.0f, -5.0f, -5.0f, -5.0f,  5.0f, -5.0f,  5.0f,  5.0f,
-        // right face
-         5.0f,  5.0f,  5.0f,  5.0f, -5.0f, -5.0f,  5.0f,  5.0f, -5.0f,
-         5.0f, -5.0f, -5.0f,  5.0f,  5.0f,  5.0f,  5.0f, -5.0f,  5.0f,
-        // bottom face
-        -5.0f, -5.0f, -5.0f,  5.0f, -5.0f, -5.0f,  5.0f, -5.0f,  5.0f,
-         5.0f, -5.0f,  5.0f, -5.0f, -5.0f,  5.0f, -5.0f, -5.0f, -5.0f,
-        // top face
-        -5.0f,  5.0f, -5.0f,  5.0f,  5.0f,  5.0f,  5.0f,  5.0f, -5.0f,
-         5.0f,  5.0f,  5.0f, -5.0f,  5.0f, -5.0f, -5.0f,  5.0f,  5.0f
-    };
-
-    unsigned int VAO = 0, VBO = 0;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
-    glBindVertexArray(0);
-    return VAO;
 }
 
 int main(void) {
@@ -132,7 +96,7 @@ int main(void) {
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetWindowUserPointer(window, &camera);
 
-  unsigned int cubeVAO = createCubeVAO();
+  auto cube = Primitives::Cube();
   Shader equirectToCube("equirect_to_cubemap");
   Shader skyboxShader("skybox");
 
@@ -145,7 +109,7 @@ int main(void) {
   unsigned int skyboxCubemap = Texture::convertHDRIToCubemap(
     hdr2D,
     equirectToCube,
-    cubeVAO,
+    cube.VAO(),
     512,
     SCR_W, SCR_H
   );
@@ -174,16 +138,14 @@ int main(void) {
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_W / (float)SCR_H, 0.1f, 100.0f);
 
     glm::mat4 proj = camera.getProjectionMatrix();
-    glm::mat4 view = camera.getViewMatrix();
+    glm::mat4 view = glm::mat4(glm::mat3(camera.getViewMatrix()));
 
     skyboxShader.setMat4("proj", proj);
     skyboxShader.setMat4("view", view);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxCubemap);
-
-    glBindVertexArray(cubeVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    cube.draw();
 
     float cameraSpeed = 3.0f;
     checkKeyboardEvents(window, cameraSpeed, Time::deltaTime);
