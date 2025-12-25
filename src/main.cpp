@@ -5,25 +5,112 @@
 
 #include "utils/Shader/Shader.h"
 #include "utils/Time/Time.h"
+#include "utils/Texture/Texture.h"
+#include "utils/Camera/Camera.h"
 
 #include "math/Mesh/Mesh.h"
+
+// TODO: create a better mouse input handling system
+void mouseCallback(GLFWwindow* window, double xPos, double yPos) {
+  static bool first = true;
+  static double lastX = 0, lastY = 0;
+
+  if (first) {
+    lastX = xPos;
+    lastY = yPos;
+    first = false;
+  }
+
+  float xOffset = (float)(xPos - lastX);
+  lastX = xPos;
+  float yOffset = (float)(lastY - yPos);
+  lastY = yPos;
+
+  Camera* camera = (Camera*)glfwGetWindowUserPointer(window);
+  camera->processMouseMovement(xOffset, yOffset, 0.1f);
+}
+// TODO: create a better keyboard input handling system
+void checkKeyboardEvents(GLFWwindow* window, float cameraSpeed, float deltaTime) {
+  Camera* camera = (Camera*)glfwGetWindowUserPointer(window);
+
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    camera->processKeyboard(CameraMovement::Forward, deltaTime, cameraSpeed);
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    camera->processKeyboard(CameraMovement::Backward, deltaTime, cameraSpeed);
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    camera->processKeyboard(CameraMovement::Left, deltaTime, cameraSpeed);
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    camera->processKeyboard(CameraMovement::Right, deltaTime, cameraSpeed);
+  if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    camera->processKeyboard(CameraMovement::Up, deltaTime, cameraSpeed);
+  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    camera->processKeyboard(CameraMovement::Down, deltaTime, cameraSpeed);
+}
+
+static void framebuffer_size_callback(GLFWwindow* window, int w, int h) {
+    glViewport(0, 0, w, h);
+}
+
+static unsigned int createCubeVAO() {
+    float cubeVertices[] = {
+        // back face
+        -5.0f, -5.0f, -5.0f,  5.0f,  5.0f, -5.0f,  5.0f, -5.0f, -5.0f,
+         5.0f,  5.0f, -5.0f, -5.0f, -5.0f, -5.0f, -5.0f,  5.0f, -5.0f,
+        // front face
+        -5.0f, -5.0f,  5.0f,  5.0f, -5.0f,  5.0f,  5.0f,  5.0f,  5.0f,
+         5.0f,  5.0f,  5.0f, -5.0f,  5.0f,  5.0f, -5.0f, -5.0f,  5.0f,
+        // left face
+        -5.0f,  5.0f,  5.0f, -5.0f,  5.0f, -5.0f, -5.0f, -5.0f, -5.0f,
+        -5.0f, -5.0f, -5.0f, -5.0f, -5.0f,  5.0f, -5.0f,  5.0f,  5.0f,
+        // right face
+         5.0f,  5.0f,  5.0f,  5.0f, -5.0f, -5.0f,  5.0f,  5.0f, -5.0f,
+         5.0f, -5.0f, -5.0f,  5.0f,  5.0f,  5.0f,  5.0f, -5.0f,  5.0f,
+        // bottom face
+        -5.0f, -5.0f, -5.0f,  5.0f, -5.0f, -5.0f,  5.0f, -5.0f,  5.0f,
+         5.0f, -5.0f,  5.0f, -5.0f, -5.0f,  5.0f, -5.0f, -5.0f, -5.0f,
+        // top face
+        -5.0f,  5.0f, -5.0f,  5.0f,  5.0f,  5.0f,  5.0f,  5.0f, -5.0f,
+         5.0f,  5.0f,  5.0f, -5.0f,  5.0f, -5.0f, -5.0f,  5.0f,  5.0f
+    };
+
+    unsigned int VAO = 0, VBO = 0;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    glBindVertexArray(0);
+    return VAO;
+}
 
 int main(void) {
   GLFWwindow* window;
 
   /* Initialize the library */
-  if (!glfwInit())
+  if (!glfwInit()) {
+    std::cerr << "Failed to initialize GLFW\n";
     return -1;
+  }
 
-  /* Create a windowed mode window and its OpenGL context */
-  window = glfwCreateWindow(640, 480, "Room", NULL, NULL);
+  const int SCR_W = 1280;
+  const int SCR_H = 720;
+  const float SCR_ASPECT = (float)SCR_W / (float)SCR_H;
+
+  window = glfwCreateWindow(SCR_W, SCR_H, "Room", NULL, NULL);
   if (!window) {
     glfwTerminate();
+    std::cerr << "Failed to Create Window\n";
     return -1;
   }
 
   /* Make the window's context current */
   glfwMakeContextCurrent(window);
+  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cerr << "Failed to initialize GLAD\n";
@@ -32,28 +119,75 @@ int main(void) {
 
   std::cout << "Using OpenGL Driver: " << glGetString(GL_VERSION) << std::endl;
 
-  std::vector<Vertex> verts = {
-    {{-0.5f,-0.5f,0.0f}, {1,0,0}},
-    {{ 0.5f,-0.5f,0.0f}, {0,1,0}},
-    {{ 0.0f, 0.5f,0.0f}, {0,0,1}},
-  };
+  glEnable(GL_DEPTH_TEST);
 
-  Mesh tri(verts);
-  Shader shader("test");
+  Camera camera(
+    glm::vec3(0.0f, 2.0f, 4.0f),
+    glm::vec3(0.0f, 0.0f, 0.0f),
+    glm::vec3(0.0f, 1.0f, 0.0f),
+    45.0f,
+    SCR_ASPECT
+  );
+  glfwSetCursorPosCallback(window, mouseCallback);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetWindowUserPointer(window, &camera);
+
+  unsigned int cubeVAO = createCubeVAO();
+  Shader equirectToCube("equirect_to_cubemap");
+  Shader skyboxShader("skybox");
+
+  unsigned int hdr2D = Texture::loadHDRI2D(TEXTURES_DIR + "/skybox/qwantani_moon_noon_puresky_1k.hdr");
+  if (hdr2D == 0) {
+    std::cerr << "Failed to load the Skybox texture\n";
+    return -1;
+  }
+
+  unsigned int skyboxCubemap = Texture::convertHDRIToCubemap(
+    hdr2D,
+    equirectToCube,
+    cubeVAO,
+    512,
+    SCR_W, SCR_H
+  );
 
   /* Loop until the user closes the window */
   while (!glfwWindowShouldClose(window)) {
     Time::update();
 
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    glViewport(0, 0, width, height);
+    camera.setAspect((float)width / (float)height);
+
     /* Render here */
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (shader.reloadIfChanged()) {
-      std::cout << "Shader reloaded OK\n";
-    }
+    // if (shader.reloadIfChanged()) {
+    //   std::cout << "Shader reloaded OK\n";
+    // }
 
-    shader.bind();
-    tri.draw();
+    glDepthFunc(GL_LEQUAL);
+
+    skyboxShader.bind();
+    skyboxShader.setInt("skybox", 0);
+
+    glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_W / (float)SCR_H, 0.1f, 100.0f);
+
+    glm::mat4 proj = camera.getProjectionMatrix();
+    glm::mat4 view = camera.getViewMatrix();
+
+    skyboxShader.setMat4("proj", proj);
+    skyboxShader.setMat4("view", view);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxCubemap);
+
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    float cameraSpeed = 3.0f;
+    checkKeyboardEvents(window, cameraSpeed, Time::deltaTime);
+
 
     /* Swap front and back buffers */
     glfwSwapBuffers(window);
