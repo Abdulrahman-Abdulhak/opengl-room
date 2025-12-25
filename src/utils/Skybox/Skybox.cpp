@@ -26,6 +26,9 @@ Skybox::Skybox(const Mesh& cube, const std::string& hdrPath, int cubemapSize, in
         restoreH
     );
 
+    m_skyboxShader.bind();
+    m_skyboxShader.setInt("skybox", 0);
+
     if (hdr2D) glDeleteTextures(1, &hdr2D);
 }
 
@@ -41,7 +44,6 @@ void Skybox::draw(const Camera& camera) const {
     glCullFace(GL_FRONT);
 
     m_skyboxShader.bind();
-    m_skyboxShader.setInt("skybox", 0);
 
     glm::mat4 proj = camera.getProjectionMatrix();
     glm::mat4 view = glm::mat4(glm::mat3(camera.getViewMatrix()));

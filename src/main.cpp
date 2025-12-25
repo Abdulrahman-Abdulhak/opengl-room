@@ -12,6 +12,8 @@
 #include "math/Primitives/Primitives.h"
 #include "utils/Skybox/Skybox.h"
 
+#include "room.h"
+
 // TODO: create a better mouse input handling system
 void mouseCallback(GLFWwindow* window, double xPos, double yPos) {
   static bool first = true;
@@ -109,6 +111,24 @@ int main(void) {
     SCR_H
   );
 
+  auto roomWidth = 10.f;
+  auto roomHeight = 3.f;
+  auto roomDepth = 10.f;
+
+  auto wallTexture = Texture::load2D(TEXTURES_DIR + "/wood-shutter/diffuse.jpg");
+  auto room = createRoomMesh(roomWidth, roomHeight, roomDepth);
+  Shader roomShader("room");
+  roomShader.bind();
+  roomShader.setMat4("model", glm::mat4(1.0f));
+  roomShader.setInt("uTex", 0);
+  roomShader.setFloat("uTile", 0.5f);
+  roomShader.setVec3("uRoomCenter", glm::vec3(0.0f, roomHeight * 0.5f, 0.0f));
+  roomShader.setVec3("uHalfSize", glm::vec3(
+    roomWidth * 0.5f,
+    roomHeight * 0.5f,
+    roomDepth * 0.5f
+  ));
+
   /* Loop until the user closes the window */
   while (!glfwWindowShouldClose(window)) {
     Time::update();
@@ -126,6 +146,15 @@ int main(void) {
     // }
 
     skybox.draw(camera);
+
+    roomShader.bind();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, wallTexture);
+    roomShader.setMat4("view", camera.getViewMatrix());
+    roomShader.setMat4("projection", camera.getProjectionMatrix());
+
+    room.draw();
 
     float cameraSpeed = 3.0f;
     checkKeyboardEvents(window, cameraSpeed, Time::deltaTime);
